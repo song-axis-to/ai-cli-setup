@@ -1,0 +1,7 @@
+# local backups created by installers
+*.bak
+*.bak.*
+.DS_Store
+
+# private project→type/color mappings (never commit — keeps internal names local)
+cc-tab-overrides.sh

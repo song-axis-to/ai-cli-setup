@@ -1,0 +1,23 @@
+# ~/.codex/config.toml — Codex CLI 권장 설정 예시
+# 실제 파일 위치: ~/.codex/config.toml  (Codex CLI 가 직접 읽고 씀)
+
+# 사용할 모델
+model = "gpt-5.5"
+
+# 추론 강도: minimal | low | medium | high
+model_reasoning_effort = "medium"
+
+# ── 프로젝트별 신뢰 수준 ─────────────────────────────────
+# trust_level = "trusted" 이면 해당 디렉터리에서 승인 프롬프트를 최소화한다.
+# 신뢰하는 작업 디렉터리만 등록할 것.
+[projects."/Users/you/Workspace/your-project"]
+trust_level = "trusted"
+
+# ── MCP 서버 ────────────────────────────────────────────
+# 예) Notion MCP
+[mcp_servers.notion]
+url = "https://mcp.notion.com/mcp"
+
+# 모델 마이그레이션 알림(자동 기록되는 항목 — 보통 손대지 않음)
+# [notice.model_migrations]
+# "gpt-5.3-codex" = "gpt-5.4"
