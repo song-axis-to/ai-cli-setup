@@ -1,13 +1,62 @@
 #!/usr/bin/env bash
-# cc-monitor [--once] — dashboard TUI for Claude cockpit sessions.
+# cc-monitor [--once|--scan] — dashboard TUI for Claude cockpit sessions.
 #   live: redraw every ~1s; press a row number to focus its iTerm tab; q quits.
 #   --once: print one rendered frame and exit (for tests / piping).
+#   --scan: detect state transitions + fire notifications, then exit.
 set -uo pipefail
 SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SESS_DIR="${CC_SESSIONS_DIR:-$HOME/.claude/cc-sessions}"
 STUCK_MIN="${CC_STUCK_MIN:-600}"
 TTL="${CC_TTL:-86400}"
 FOCUS="$SELF_DIR/focus_session.applescript"
+
+NOTIFY="$SELF_DIR/cc-notify.sh"
+STATE_CACHE="${CC_STATE_CACHE:-$HOME/.claude/.cc-monitor-state}"
+DONE_MIN="${CC_DONE_MIN:-120}"
+THROTTLE="${CC_THROTTLE:-60}"
+
+# Fire cc-notify.sh (or the test log) honoring per-(sid,state) throttle.
+notify(){ # sid state type desc
+  local sid="$1" state="$2" type="$3" desc="$4" now key last
+  now="$(date +%s)"; key="$sid:$state"
+  last="$(grep -F "throttle $key " "$STATE_CACHE" 2>/dev/null | tail -1 | awk '{print $3}')"
+  [ -n "$last" ] && [ $(( now - last )) -lt "$THROTTLE" ] && return 0
+  echo "throttle $key $now" >> "$STATE_CACHE"
+  if [ -n "${CC_NOTIFY_TEST_LOG:-}" ]; then
+    echo "$type $state $desc" >> "$CC_NOTIFY_TEST_LOG"
+  else
+    "$NOTIFY" "$type $(glyph_for "$state") $state" "$desc" >/dev/null 2>&1 || true
+  fi
+}
+# glyph_for needed here too:
+. "$SELF_DIR/../hooks/cc-lib.sh" 2>/dev/null || true
+
+scan(){
+  local now; now="$(date +%s)"
+  shopt -s nullglob
+  for f in "$SESS_DIR"/*.json; do
+    local sid state type desc turn act prev
+    sid="$(jq -r '.session_id' "$f" 2>/dev/null)"; [ -z "$sid" ] && continue
+    state="$(jq -r '.state' "$f" 2>/dev/null)"
+    type="$(jq -r '.type' "$f" 2>/dev/null)"
+    desc="$(jq -r '.desc' "$f" 2>/dev/null)"
+    turn="$(jq -r '.turn_started_at' "$f" 2>/dev/null)"
+    act="$(jq -r '.last_activity_at' "$f" 2>/dev/null)"
+    prev="$(grep -F "last $sid " "$STATE_CACHE" 2>/dev/null | tail -1 | awk '{print $3}')"
+    if [ "$state" != "$prev" ]; then
+      case "$state" in
+        waiting|error) notify "$sid" "$state" "$type" "$desc" ;;
+        done) [ -n "$turn" ] && [ $(( act - turn )) -gt "$DONE_MIN" ] && notify "$sid" "$state" "$type" "$desc" ;;
+      esac
+      echo "last $sid $state" >> "$STATE_CACHE"
+    fi
+    # stuck watchdog: notify once when crossing the threshold while working
+    if [ "$state" = working ] && [ $(( now - act )) -gt "$STUCK_MIN" ]; then
+      notify "$sid" "stuck" "$type" "$desc"
+    fi
+  done
+  shopt -u nullglob
+}
 
 order(){ case "$1" in error)echo 0;; waiting)echo 1;; working)echo 2;; done)echo 3;; *)echo 4;; esac; }
 alive(){ ps -p "$1" >/dev/null 2>&1; }
@@ -47,6 +96,7 @@ render(){
   [ "$i" -eq 0 ] && echo "(no active sessions)"
 }
 
+if [ "${1:-}" = "--scan" ]; then scan; exit 0; fi
 if [ "${1:-}" = "--once" ]; then render; exit 0; fi
 
 # live loop
@@ -54,6 +104,7 @@ trap 'tput cnorm 2>/dev/null; exit 0' INT TERM
 tput civis 2>/dev/null
 while :; do
   frame="$(render)"
+  scan
   clear
   printf 'CC COCKPIT  (number=focus, q=quit)   %s\n\n%s\n' "$(date +%H:%M:%S)" "$frame"
   # wait up to 1s for a keypress

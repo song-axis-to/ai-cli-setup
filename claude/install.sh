@@ -24,9 +24,10 @@ echo "✓ installed cc-lib.sh + cc-hook.sh"
 # cockpit: bin (monitor, focus, notifier, statusline)
 BIN_DIR="$CLAUDE_DIR/bin"
 mkdir -p "$BIN_DIR"
-for b in cc-monitor focus_session.applescript; do
+for b in cc-monitor focus_session.applescript cc-notify.sh; do
   install -m 0755 "$SCRIPT_DIR/bin/$b" "$BIN_DIR/$b"
 done
+install -m 0644 "$SCRIPT_DIR/cc-notify.env.example" "$CLAUDE_DIR/cc-notify.env.example"
 echo "✓ installed cockpit bin → $BIN_DIR (run: $BIN_DIR/cc-monitor)"
 
 # 2) merge language + hooks into settings.json (backup first)
