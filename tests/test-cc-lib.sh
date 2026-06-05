@@ -14,7 +14,7 @@ chk glyph_wait "$(glyph_for waiting)"    "◆"
 
 # paint writes 4 OSC sequences to the target
 out="$(mktemp)"; cc_paint_tab working api "$out"
-n=$(grep -c $'\a' "$out"); chk paint_seqs "$n" "4"
+n=$(tr -cd '\a' < "$out" | wc -c | tr -d ' '); chk paint_seqs "$n" "4"
 # waiting overrides red channel to 240
 cc_paint_tab waiting api "$out"; grep -q 'red;brightness;240' "$out" || { echo "FAIL waiting override"; fail=1; }
 rm -f "$out"

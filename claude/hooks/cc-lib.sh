@@ -61,10 +61,10 @@ cc_paint_tab() {
   read -r r g b <<<"$(color_for "$type")"
   [ "$state" = waiting ] && { r=240; g=150; b=0; }
   {
-    printf '\033]6;1;bg;red;brightness;%d\a\n'   "$r"
-    printf '\033]6;1;bg;green;brightness;%d\a\n' "$g"
-    printf '\033]6;1;bg;blue;brightness;%d\a\n'  "$b"
-    printf '\033]1337;SetBadgeFormat=%s\a\n' \
+    printf '\033]6;1;bg;red;brightness;%d\a'   "$r"
+    printf '\033]6;1;bg;green;brightness;%d\a' "$g"
+    printf '\033]6;1;bg;blue;brightness;%d\a'  "$b"
+    printf '\033]1337;SetBadgeFormat=%s\a' \
       "$(printf '%s %s' "$(glyph_for "$state")" "$type" | base64 | tr -d '\n')"
   } >> "$tty" 2>/dev/null
 }

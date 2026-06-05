@@ -27,6 +27,7 @@ render(){
     type="$(jq -r '.type' "$f" 2>/dev/null)"
     state="$(jq -r '.state' "$f" 2>/dev/null)"
     desc="$(jq -r '.desc' "$f" 2>/dev/null)"
+    desc="${desc//|/ }"
     act="$(jq -r '.last_activity_at' "$f" 2>/dev/null)"
     # reap stale: dead pid or older than TTL
     if ! alive "$pid" || [ $(( now - act )) -gt "$TTL" ]; then rm -f "$f" 2>/dev/null; continue; fi
