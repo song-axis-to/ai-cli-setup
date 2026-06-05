@@ -20,4 +20,4 @@ f="$SESS_DIR/$sid.json"
 branch="$(git -C "$cwd" rev-parse --abbrev-ref HEAD 2>/dev/null)"; [ -z "$branch" ] && branch="-"
 costs=""; [ -n "$cost" ] && costs=$(printf '$%.2f' "$cost" 2>/dev/null)
 
-printf '%s %s │ %s │ %s │ %s' "$type" "$(glyph_for "$state")" "$branch" "$model" "$costs"
+printf '%s %s │ %s │ %s │ %s\n' "$type" "$(glyph_for "$state")" "$branch" "$model" "$costs"

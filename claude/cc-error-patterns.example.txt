@@ -1,4 +1,4 @@
-# Copy to ~/.claude/cc-error-patterns.txt (gitignored). One ERE regex per line.
+# Copy to ~/.claude/cc-error-patterns.txt (gitignored). One ERE regex per line. Lines starting with # and blank lines are ignored.
 OutOfMemory
 FATAL
 panic:

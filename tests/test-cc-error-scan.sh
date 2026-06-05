@@ -19,5 +19,10 @@ chk err "$(jq -r .state "$CC_SESSIONS_DIR/S1.json")" "error"
 jq '.state="working"' "$CC_SESSIONS_DIR/S1.json" > "$CC_SESSIONS_DIR/.t" && mv "$CC_SESSIONS_DIR/.t" "$CC_SESSIONS_DIR/S1.json"
 echo '{"session_id":"S1","tool_response":{"stdout":"all good"}}' | bash "$ROOT/claude/hooks/cc-error-scan.sh"
 chk ok "$(jq -r .state "$CC_SESSIONS_DIR/S1.json")" "working"
+# a comment-only patterns file must NOT flag everything as error
+printf '# just a comment\n\n' > "$CC_PATTERNS"
+jq '.state="working"' "$CC_SESSIONS_DIR/S1.json" > "$CC_SESSIONS_DIR/.t" && mv "$CC_SESSIONS_DIR/.t" "$CC_SESSIONS_DIR/S1.json"
+echo '{"session_id":"S1","tool_response":{"stdout":"line with # hash"}}' | bash "$ROOT/claude/hooks/cc-error-scan.sh"
+chk comment_nomatch "$(jq -r .state "$CC_SESSIONS_DIR/S1.json")" "working"
 rm -rf "$CC_SESSIONS_DIR" "$CC_PATTERNS" "$CLAUDE_ITERM_TTY"
 [ $fail -eq 0 ] && echo "ALL PASS"; exit $fail

@@ -15,7 +15,10 @@ f="$SESS_DIR/$sid.json"; [ -f "$f" ] || exit 0
 
 # Concatenate likely output fields and grep against the patterns.
 blob="$(printf '%s' "$input" | jq -r '[.tool_response.stdout?, .tool_response.stderr?, (.tool_response|tostring)] | map(select(.!=null)) | join("\n")' 2>/dev/null)"
-grep -Eqf "$PATTERNS" <<<"$blob" || exit 0
+# strip blank lines and # comments so the example file's header can't match everything
+pats="$(grep -vE '^[[:space:]]*(#|$)' "$PATTERNS" 2>/dev/null)"
+[ -z "$pats" ] && exit 0
+grep -Eq -f <(printf '%s\n' "$pats") <<<"$blob" || exit 0
 
 tmp="$(mktemp "$SESS_DIR/.$sid.XXXXXX" 2>/dev/null)" || exit 0
 jq '.state="error" | .last_event="error-scan"' "$f" > "$tmp" 2>/dev/null && mv "$tmp" "$f"
