@@ -1,33 +1,10 @@
 {
   "language": "korean",
   "hooks": {
-    "SessionStart": [
-      {
-        "hooks": [
-          { "type": "command", "command": "$HOME/.claude/hooks/iterm-tab.sh idle", "timeout": 5 }
-        ]
-      }
-    ],
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          { "type": "command", "command": "$HOME/.claude/hooks/iterm-tab.sh working", "timeout": 5 }
-        ]
-      }
-    ],
-    "Notification": [
-      {
-        "hooks": [
-          { "type": "command", "command": "$HOME/.claude/hooks/iterm-tab.sh waiting", "timeout": 5 }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          { "type": "command", "command": "$HOME/.claude/hooks/iterm-tab.sh done", "timeout": 5 }
-        ]
-      }
-    ]
+    "SessionStart": [{ "hooks": [{ "type": "command", "command": "CC_EVENT=SessionStart $HOME/.claude/hooks/cc-hook.sh idle", "timeout": 5 }] }],
+    "UserPromptSubmit": [{ "hooks": [{ "type": "command", "command": "CC_EVENT=UserPromptSubmit $HOME/.claude/hooks/cc-hook.sh working", "timeout": 5 }] }],
+    "Notification": [{ "hooks": [{ "type": "command", "command": "CC_EVENT=Notification $HOME/.claude/hooks/cc-hook.sh waiting", "timeout": 5 }] }],
+    "Stop": [{ "hooks": [{ "type": "command", "command": "CC_EVENT=Stop $HOME/.claude/hooks/cc-hook.sh done", "timeout": 5 }] }],
+    "SessionEnd": [{ "hooks": [{ "type": "command", "command": "CC_EVENT=SessionEnd $HOME/.claude/hooks/cc-hook.sh end", "timeout": 5 }] }]
   }
 }
