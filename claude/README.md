@@ -171,7 +171,7 @@ Run `--once` to print a single frame to stdout (useful for piping/tests).
 State files live in `~/.claude/cc-sessions/` (auto-created by `cc-hook.sh`).
 The installer sets up all hooks automatically — no manual wiring needed.
 
-### Notifications (macOS + Telegram)
+### Notifications (Telegram, optional macOS)
 
 `cc-monitor` fires `cc-notify.sh` when a session transitions to `waiting` or
 `error`, and when a long-running session completes.
@@ -183,9 +183,11 @@ cp claude/cc-notify.env.example ~/.claude/cc-notify.env
 # edit ~/.claude/cc-notify.env — fill in TELEGRAM_BOT_TOKEN + CC_NOTIFY_CHAT_ID
 ```
 
-If `~/.claude/cc-notify.env` has no token, Telegram is skipped; macOS
-notifications are always attempted. Set `CC_NOTIFY_DRYRUN=1` to print instead
-of sending (used in tests).
+The **macOS desktop notification is OFF by default** — iTerm2 already shows its
+own alert and osascript notifications misattribute to "Script Editor", so it
+would just duplicate. Enable it with `CC_NOTIFY_MACOS=1` (in `cc-notify.env`).
+If `cc-notify.env` has no token, Telegram is skipped. `CC_NOTIFY_DRYRUN=1` prints
+instead of sending (used in tests).
 
 ### Error detection (PostToolUse)
 
@@ -244,7 +246,7 @@ installer. No extra setup needed.
 상태 파일은 `~/.claude/cc-sessions/`에 저장됩니다(`cc-hook.sh`가 자동 생성).
 설치 스크립트가 모든 훅을 자동으로 구성합니다.
 
-### 알림 (macOS + Telegram)
+### 알림 (Telegram, macOS는 선택)
 
 `waiting` / `error` 전환, 장시간 작업 완료 시 `cc-notify.sh`를 통해 알림을 보냅니다.
 
@@ -255,7 +257,9 @@ cp claude/cc-notify.env.example ~/.claude/cc-notify.env
 # ~/.claude/cc-notify.env 편집 — TELEGRAM_BOT_TOKEN + CC_NOTIFY_CHAT_ID 입력
 ```
 
-토큰이 없으면 Telegram은 건너뛰고 macOS 알림만 시도합니다.
+**macOS 데스크톱 알림은 기본 OFF** — iTerm2가 자체 알림을 띄우고 osascript 알림은
+"스크립트 편집기"로 귀속돼 중복되기 때문입니다. 필요하면 `cc-notify.env`에
+`CC_NOTIFY_MACOS=1`로 켤 수 있습니다. 토큰이 없으면 Telegram은 건너뜁니다.
 `CC_NOTIFY_DRYRUN=1`로 실제 전송 없이 출력만 확인할 수 있습니다.
 
 ### 에러 감지 (PostToolUse)
