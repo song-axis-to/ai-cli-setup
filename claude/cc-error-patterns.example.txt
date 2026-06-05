@@ -1,0 +1,6 @@
+# Copy to ~/.claude/cc-error-patterns.txt (gitignored). One ERE regex per line.
+OutOfMemory
+FATAL
+panic:
+Traceback \(most recent call last\)
+Segmentation fault

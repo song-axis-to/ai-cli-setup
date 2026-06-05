@@ -16,10 +16,12 @@ mkdir -p "$HOOKS_DIR"
 install -m 0755 "$SCRIPT_DIR/hooks/iterm-tab.sh" "$HOOKS_DIR/iterm-tab.sh"
 echo "✓ installed $HOOKS_DIR/iterm-tab.sh"
 
-# cockpit: shared lib + state hook
-install -m 0644 "$SCRIPT_DIR/hooks/cc-lib.sh"  "$HOOKS_DIR/cc-lib.sh"
-install -m 0755 "$SCRIPT_DIR/hooks/cc-hook.sh" "$HOOKS_DIR/cc-hook.sh"
-echo "✓ installed cc-lib.sh + cc-hook.sh"
+# cockpit: shared lib + state hook + error scanner
+install -m 0644 "$SCRIPT_DIR/hooks/cc-lib.sh"        "$HOOKS_DIR/cc-lib.sh"
+install -m 0755 "$SCRIPT_DIR/hooks/cc-hook.sh"       "$HOOKS_DIR/cc-hook.sh"
+install -m 0755 "$SCRIPT_DIR/hooks/cc-error-scan.sh" "$HOOKS_DIR/cc-error-scan.sh"
+install -m 0644 "$SCRIPT_DIR/cc-error-patterns.example.txt" "$CLAUDE_DIR/cc-error-patterns.example.txt"
+echo "✓ installed cc-lib.sh + cc-hook.sh + cc-error-scan.sh"
 
 # cockpit: bin (monitor, focus, notifier, statusline)
 BIN_DIR="$CLAUDE_DIR/bin"

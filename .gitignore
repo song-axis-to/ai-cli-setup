@@ -6,3 +6,4 @@
 # private project→type/color mappings (never commit — keeps internal names local)
 cc-tab-overrides.sh
 cc-notify.env
+cc-error-patterns.txt
