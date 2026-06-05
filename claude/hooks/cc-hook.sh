@@ -23,6 +23,7 @@ fi
 cwd="$(g '.cwd')"; [ -z "$cwd" ] && cwd="$PWD"
 type="$(type_for "$(basename "$cwd")")"
 tty="$(cc_resolve_tty)"
+pid="$(cc_resolve_pid)"
 now="$(date +%s)"
 
 started=""; desc=""; turn=""
@@ -42,7 +43,7 @@ fi
 
 tmp="$(mktemp "$SESS_DIR/.$sid.XXXXXX" 2>/dev/null)" || exit 0
 jq -n \
-  --arg sid "$sid" --argjson pid "$$" --arg tty "$tty" --arg cwd "$cwd" \
+  --arg sid "$sid" --argjson pid "$pid" --arg tty "$tty" --arg cwd "$cwd" \
   --arg type "$type" --arg state "$state" --arg desc "$desc" \
   --argjson started "$started" --argjson turn "$turn" --argjson now "$now" \
   --arg ev "${CC_EVENT:-}" \

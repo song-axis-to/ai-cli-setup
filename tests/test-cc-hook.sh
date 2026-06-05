@@ -22,6 +22,15 @@ chk state2 "$(jq -r .state "$f")" "done"
 chk desc2  "$(jq -r .desc "$f")"  "fix the auth test now"
 chk start2 "$(jq -r .started_at "$f")" "$s1_started"
 
+# Stored pid must be the resolved (live) session pid, NOT the hook's ephemeral $$.
+# Inject a known-alive pid via CC_SESSION_PID and confirm it is what gets stored.
+export CC_SESSION_PID=$$
+run UserPromptSubmit '{"session_id":"S2","cwd":"/x/my-api","prompt":"hi"}' working
+g2="$CC_SESSIONS_DIR/S2.json"
+chk pid_stored "$(jq -r .pid "$g2")" "$$"
+ps -p "$(jq -r .pid "$g2")" >/dev/null 2>&1 || { echo "FAIL stored pid not alive"; fail=1; }
+unset CC_SESSION_PID
+
 # SessionEnd → state file removed
 run SessionEnd '{"session_id":"S1","cwd":"/x/my-api"}' end
 [ -f "$f" ] && { echo "FAIL file not removed on end"; fail=1; }

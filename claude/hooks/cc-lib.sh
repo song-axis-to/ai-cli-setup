@@ -14,6 +14,21 @@ cc_resolve_tty() {
   printf '/dev/tty'
 }
 
+# Resolve the long-lived session PID = the nearest ancestor attached to a pane
+# tty (the `claude` process). The hook's own $$ exits immediately, so storing it
+# would make liveness checks always fail and the monitor would reap every file.
+# Falls back to $$ when no pane-tty ancestor is found (headless).
+cc_resolve_pid() {
+  [ -n "${CC_SESSION_PID:-}" ] && { printf '%s' "$CC_SESSION_PID"; return; }
+  local pid="$$" ppid t
+  while [ "${pid:-0}" -gt 1 ]; do
+    read -r ppid t <<<"$(ps -o ppid=,tty= -p "$pid" 2>/dev/null)"
+    case "$t" in ttys*) printf '%s' "$pid"; return ;; esac
+    pid="$ppid"
+  done
+  printf '%s' "$$"
+}
+
 # Map a directory basename to a short work "type" (generic examples).
 type_for() {
   case "$1" in

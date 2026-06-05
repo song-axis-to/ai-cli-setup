@@ -18,4 +18,13 @@ n=$(tr -cd '\a' < "$out" | wc -c | tr -d ' '); chk paint_seqs "$n" "4"
 # waiting overrides red channel to 240
 cc_paint_tab waiting api "$out"; grep -q 'red;brightness;240' "$out" || { echo "FAIL waiting override"; fail=1; }
 rm -f "$out"
+
+# cc_resolve_pid returns a live pid (never the hook's ephemeral $$ after it exits):
+# called from this (live) shell it must yield a positive integer for a running process.
+rp="$(cc_resolve_pid)"
+case "$rp" in ''|*[!0-9]*) echo "FAIL resolve_pid not numeric: '$rp'"; fail=1 ;; esac
+ps -p "$rp" >/dev/null 2>&1 || { echo "FAIL resolve_pid '$rp' not alive"; fail=1; }
+# CC_SESSION_PID override is honored (used by tests to inject a known pid)
+chk resolve_pid_override "$(CC_SESSION_PID=4242 cc_resolve_pid)" "4242"
+
 [ $fail -eq 0 ] && echo "ALL PASS"; exit $fail
