@@ -26,7 +26,7 @@ echo "✓ installed cc-lib.sh + cc-hook.sh + cc-error-scan.sh"
 # cockpit: bin (monitor, focus, notifier, statusline)
 BIN_DIR="$CLAUDE_DIR/bin"
 mkdir -p "$BIN_DIR"
-for b in cc-monitor focus_session.applescript cc-notify.sh; do
+for b in cc-monitor focus_session.applescript cc-notify.sh cc-statusline.sh; do
   install -m 0755 "$SCRIPT_DIR/bin/$b" "$BIN_DIR/$b"
 done
 install -m 0644 "$SCRIPT_DIR/cc-notify.env.example" "$CLAUDE_DIR/cc-notify.env.example"
