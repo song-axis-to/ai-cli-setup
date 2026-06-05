@@ -16,6 +16,19 @@ mkdir -p "$HOOKS_DIR"
 install -m 0755 "$SCRIPT_DIR/hooks/iterm-tab.sh" "$HOOKS_DIR/iterm-tab.sh"
 echo "✓ installed $HOOKS_DIR/iterm-tab.sh"
 
+# cockpit: shared lib + state hook
+install -m 0644 "$SCRIPT_DIR/hooks/cc-lib.sh"  "$HOOKS_DIR/cc-lib.sh"
+install -m 0755 "$SCRIPT_DIR/hooks/cc-hook.sh" "$HOOKS_DIR/cc-hook.sh"
+echo "✓ installed cc-lib.sh + cc-hook.sh"
+
+# cockpit: bin (monitor, focus, notifier, statusline)
+BIN_DIR="$CLAUDE_DIR/bin"
+mkdir -p "$BIN_DIR"
+for b in cc-monitor focus_session.applescript; do
+  install -m 0755 "$SCRIPT_DIR/bin/$b" "$BIN_DIR/$b"
+done
+echo "✓ installed cockpit bin → $BIN_DIR (run: $BIN_DIR/cc-monitor)"
+
 # 2) merge language + hooks into settings.json (backup first)
 ts="$(date +%Y%m%d-%H%M%S)"
 if [ -f "$SETTINGS" ]; then
