@@ -22,6 +22,9 @@ notify(){ # sid state type desc
   last="$(grep -F "throttle $key " "$STATE_CACHE" 2>/dev/null | tail -1 | awk '{print $3}')"
   [ -n "$last" ] && [ $(( now - last )) -lt "$THROTTLE" ] && return 0
   echo "throttle $key $now" >> "$STATE_CACHE"
+  if [ -f "$STATE_CACHE" ] && [ "$(wc -l < "$STATE_CACHE" 2>/dev/null || echo 0)" -gt 800 ]; then
+    tail -n 400 "$STATE_CACHE" > "$STATE_CACHE.tmp" 2>/dev/null && mv "$STATE_CACHE.tmp" "$STATE_CACHE"
+  fi
   if [ -n "${CC_NOTIFY_TEST_LOG:-}" ]; then
     echo "$type $state $desc" >> "$CC_NOTIFY_TEST_LOG"
   else

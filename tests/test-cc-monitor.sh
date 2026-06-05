@@ -19,16 +19,23 @@ gl=$(echo "$out" | grep -n working | cut -d: -f1)
 [ "$wl" -lt "$gl" ] || { echo "FAIL waiting not first"; fail=1; }
 echo "$out" | grep -q 'STUCK' || { echo "FAIL no STUCK marker"; fail=1; }
 echo "$out" | grep -q 'review' || { echo "FAIL desc missing"; fail=1; }
-# transition: working -> waiting between two renders fires a dry-run notify
-export CC_NOTIFY_DRYRUN=1 CC_NOTIFY_ENV="$(mktemp)"
-export CC_STATE_CACHE="$(mktemp)"
-mk working api "x" $((now-5)) 1
-CC_NOTIFY_LOG="$(mktemp)"
-CC_NOTIFY_TEST_LOG="$CC_NOTIFY_LOG" bash "$ROOT/claude/bin/cc-monitor" --scan >/dev/null
-mk waiting api "x" $((now-1)) 1     # api now waiting
-CC_NOTIFY_TEST_LOG="$CC_NOTIFY_LOG" bash "$ROOT/claude/bin/cc-monitor" --scan >/dev/null
-grep -q 'waiting' "$CC_NOTIFY_LOG" || { echo "FAIL no transition notify"; fail=1; }
-rm -f "$CC_NOTIFY_ENV" "$CC_STATE_CACHE" "$CC_NOTIFY_LOG"
+# transition: a single session working -> waiting across two scans fires one waiting notify
+TDIR="$(mktemp -d)"
+TLOG="$(mktemp)"
+TCACHE="$(mktemp)"
+wr(){ jq -n --arg s "$1" --arg st "$2" --argjson n "$now" \
+  '{session_id:$s,pid:1,tty:"/dev/x",cwd:"/x/my-api",type:"api",state:$st,desc:"d",
+    started_at:$n,turn_started_at:$n,last_activity_at:$n,last_event:""}' \
+  > "$TDIR/$1.json"; }
+wr S1 working
+CC_SESSIONS_DIR="$TDIR" CC_STATE_CACHE="$TCACHE" CC_NOTIFY_TEST_LOG="$TLOG" \
+  bash "$ROOT/claude/bin/cc-monitor" --scan >/dev/null
+: > "$TLOG"   # ignore baseline; only care about the transition scan
+wr S1 waiting
+CC_SESSIONS_DIR="$TDIR" CC_STATE_CACHE="$TCACHE" CC_NOTIFY_TEST_LOG="$TLOG" \
+  bash "$ROOT/claude/bin/cc-monitor" --scan >/dev/null
+grep -q 'waiting' "$TLOG" || { echo "FAIL no transition notify"; fail=1; }
+rm -rf "$TDIR" "$TLOG" "$TCACHE"
 
 rm -rf "$CC_SESSIONS_DIR"
 [ $fail -eq 0 ] && echo "ALL PASS"; exit $fail

@@ -76,6 +76,7 @@ monitor (dead `pid` or `mtime` older than a TTL).
   "state": "waiting",
   "desc": "fix the failing auth test",
   "started_at": 1717500000,
+  "turn_started_at": 1717500100,
   "last_activity_at": 1717500123,
   "last_event": "Notification"
 }
@@ -86,6 +87,7 @@ monitor (dead `pid` or `mtime` older than a TTL).
 - `desc` = first ~40 chars of the latest user prompt (captured on
   `UserPromptSubmit` stdin). Deterministic; localized to whatever language the
   user types.
+- `turn_started_at` resets to now on each `UserPromptSubmit` (working); used by the notifier's `DONE_MIN` rule (alert on `done` only when `last_activity_at − turn_started_at > DONE_MIN`).
 - `state` ∈ {idle, working, waiting, done, error}.
 
 ## Components
