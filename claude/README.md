@@ -128,3 +128,158 @@ sets the assistant's response language.
 - 종료 시 색 리셋: `SessionEnd` 훅 + 리셋 분기(`\033]6;1;bg;*;default\a`).
 - 끄기/수정: `/hooks` 메뉴.
 - 파일: `hooks/iterm-tab.sh`(색/배지), `settings.snippet.json`(language+hooks), `install.sh`(병합 설치).
+
+---
+
+## Multi-session cockpit
+
+Run many Claude Code sessions in parallel and keep track of them all from a single
+dashboard pane.
+
+### Architecture
+
+Each session's lifecycle hooks write a small JSON state file under
+`~/.claude/cc-sessions/<session_id>.json`. A polling TUI (`cc-monitor`) reads
+them all, renders a sorted list, and can focus the right iTerm tab on a keypress.
+Shared helpers live in `hooks/cc-lib.sh`.
+
+### Dashboard
+
+Open a dedicated iTerm pane and run:
+
+```bash
+~/.claude/bin/cc-monitor
+```
+
+Rows are sorted: `error` → `waiting` → `working` → `done`. Sessions idle for
+longer than `CC_STUCK_MIN` seconds (default 600) are marked `STUCK`. Press a row
+number to jump to that iTerm tab; `q` quits.
+
+```
+CC COCKPIT  (number=focus, q=quit)   14:32:07
+
+ 0) waiting  -       api     30s  review the diff
+ 1) working  -       web    120s  add login form
+ 2) working  STUCK   data  1205s  backfill job
+ 3) done     -       db       5s  migrate schema
+```
+
+Run `--once` to print a single frame to stdout (useful for piping/tests).
+
+### State store
+
+State files live in `~/.claude/cc-sessions/` (auto-created by `cc-hook.sh`).
+The installer sets up all hooks automatically — no manual wiring needed.
+
+### Notifications (macOS + Telegram)
+
+`cc-monitor` fires `cc-notify.sh` when a session transitions to `waiting` or
+`error`, and when a long-running session completes.
+
+**Setup:**
+
+```bash
+cp claude/cc-notify.env.example ~/.claude/cc-notify.env
+# edit ~/.claude/cc-notify.env — fill in TELEGRAM_BOT_TOKEN + CC_NOTIFY_CHAT_ID
+```
+
+If `~/.claude/cc-notify.env` has no token, Telegram is skipped; macOS
+notifications are always attempted. Set `CC_NOTIFY_DRYRUN=1` to print instead
+of sending (used in tests).
+
+### Error detection (PostToolUse)
+
+`cc-error-scan.sh` runs after every `Bash` tool call. If the output matches any
+pattern in `~/.claude/cc-error-patterns.txt`, the session's state flips to
+`error` and the tab is painted red.
+
+**Setup:**
+
+```bash
+cp claude/cc-error-patterns.example.txt ~/.claude/cc-error-patterns.txt
+# edit ~/.claude/cc-error-patterns.txt — add your own ERE regexes, one per line
+```
+
+The file is gitignored so patterns (which may reference internal system names)
+stay local.
+
+### statusLine
+
+`cc-statusline.sh` feeds Claude Code's `statusLine` feature. It reads the session
+state file and renders one line:
+
+```
+api ● │ feat/cockpit │ Sonnet │ $0.42
+```
+
+The `statusLine` block is already in `settings.snippet.json` and is merged by the
+installer. No extra setup needed.
+
+---
+
+## マルチセッション コックピット (한국어)
+
+여러 Claude Code 세션을 병렬로 실행할 때 하나의 대시보드 패널로 전체를 파악합니다.
+
+### 구조
+
+각 세션의 라이프사이클 훅이 `~/.claude/cc-sessions/<session_id>.json`에 상태 파일을
+기록합니다. `cc-monitor` TUI가 이 파일들을 폴링해 정렬된 목록을 렌더링하고, 숫자 키로
+해당 iTerm 탭을 포커스할 수 있습니다. 공통 헬퍼는 `hooks/cc-lib.sh`에 있습니다.
+
+### 대시보드
+
+전용 iTerm 패널에서 실행:
+
+```bash
+~/.claude/bin/cc-monitor
+```
+
+행 정렬: `error` → `waiting` → `working` → `done`. `CC_STUCK_MIN`초(기본 600)
+이상 `working` 상태이면 `STUCK` 마크가 붙습니다. 숫자 키로 해당 탭을 포커스, `q`로
+종료합니다. `--once`로 한 프레임만 출력합니다.
+
+### 상태 저장소
+
+상태 파일은 `~/.claude/cc-sessions/`에 저장됩니다(`cc-hook.sh`가 자동 생성).
+설치 스크립트가 모든 훅을 자동으로 구성합니다.
+
+### 알림 (macOS + Telegram)
+
+`waiting` / `error` 전환, 장시간 작업 완료 시 `cc-notify.sh`를 통해 알림을 보냅니다.
+
+**설정:**
+
+```bash
+cp claude/cc-notify.env.example ~/.claude/cc-notify.env
+# ~/.claude/cc-notify.env 편집 — TELEGRAM_BOT_TOKEN + CC_NOTIFY_CHAT_ID 입력
+```
+
+토큰이 없으면 Telegram은 건너뛰고 macOS 알림만 시도합니다.
+`CC_NOTIFY_DRYRUN=1`로 실제 전송 없이 출력만 확인할 수 있습니다.
+
+### 에러 감지 (PostToolUse)
+
+`cc-error-scan.sh`가 모든 `Bash` 툴 실행 후 동작합니다. 출력이
+`~/.claude/cc-error-patterns.txt`의 패턴과 일치하면 세션 상태를 `error`로 바꾸고
+탭을 빨간색으로 칠합니다.
+
+**설정:**
+
+```bash
+cp claude/cc-error-patterns.example.txt ~/.claude/cc-error-patterns.txt
+# ~/.claude/cc-error-patterns.txt 편집 — 한 줄에 ERE 정규식 하나씩
+```
+
+이 파일은 gitignore 처리되어 내부 시스템명 등이 git에 올라가지 않습니다.
+
+### statusLine
+
+`cc-statusline.sh`가 Claude Code의 `statusLine` 기능에 연결되어 한 줄을 렌더링합니다:
+
+```
+api ● │ feat/cockpit │ Sonnet │ $0.42
+```
+
+`statusLine` 블록은 `settings.snippet.json`에 이미 포함되어 있으며 설치 스크립트가
+자동으로 병합합니다.
