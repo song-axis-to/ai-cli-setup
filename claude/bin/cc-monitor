@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+# cc-monitor [--once] — dashboard TUI for Claude cockpit sessions.
+#   live: redraw every ~1s; press a row number to focus its iTerm tab; q quits.
+#   --once: print one rendered frame and exit (for tests / piping).
+set -uo pipefail
+SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SESS_DIR="${CC_SESSIONS_DIR:-$HOME/.claude/cc-sessions}"
+STUCK_MIN="${CC_STUCK_MIN:-600}"
+TTL="${CC_TTL:-86400}"
+FOCUS="$SELF_DIR/focus_session.applescript"
+
+order(){ case "$1" in error)echo 0;; waiting)echo 1;; working)echo 2;; done)echo 3;; *)echo 4;; esac; }
+alive(){ ps -p "$1" >/dev/null 2>&1; }
+
+# Print rows to stdout; also populate global TTYS[] index→tty for focus.
+declare -a TTYS
+render(){
+  TTYS=()
+  local now; now="$(date +%s)"
+  local rows=""
+  shopt -s nullglob
+  for f in "$SESS_DIR"/*.json; do
+    local sid pid tty type state desc act
+    sid="$(jq -r '.session_id' "$f" 2>/dev/null)"; [ -z "$sid" ] && continue
+    pid="$(jq -r '.pid' "$f" 2>/dev/null)"
+    tty="$(jq -r '.tty' "$f" 2>/dev/null)"
+    type="$(jq -r '.type' "$f" 2>/dev/null)"
+    state="$(jq -r '.state' "$f" 2>/dev/null)"
+    desc="$(jq -r '.desc' "$f" 2>/dev/null)"
+    act="$(jq -r '.last_activity_at' "$f" 2>/dev/null)"
+    # reap stale: dead pid or older than TTL
+    if ! alive "$pid" || [ $(( now - act )) -gt "$TTL" ]; then rm -f "$f" 2>/dev/null; continue; fi
+    local age=$(( now - act )) mark=""
+    [ "$state" = working ] && [ "$age" -gt "$STUCK_MIN" ] && { state="working"; mark="STUCK"; }
+    rows+="$(order "$state")|$age|$state|$mark|$type|$tty|$desc"$'\n'
+  done
+  shopt -u nullglob
+  # sort by (state order asc, age desc) and number the rows
+  local i=0
+  while IFS='|' read -r ord age state mark type tty desc; do
+    [ -z "$ord" ] && continue
+    TTYS[$i]="$tty"
+    printf '%2d) %-7s %-7s %-7s %5ss  %s\n' "$i" "$state" "${mark:--}" "$type" "$age" "$desc"
+    i=$((i+1))
+  done < <(printf '%s' "$rows" | sort -t'|' -k1,1n -k2,2nr)
+  [ "$i" -eq 0 ] && echo "(no active sessions)"
+}
+
+if [ "${1:-}" = "--once" ]; then render; exit 0; fi
+
+# live loop
+trap 'tput cnorm 2>/dev/null; exit 0' INT TERM
+tput civis 2>/dev/null
+while :; do
+  frame="$(render)"
+  clear
+  printf 'CC COCKPIT  (number=focus, q=quit)   %s\n\n%s\n' "$(date +%H:%M:%S)" "$frame"
+  # wait up to 1s for a keypress
+  if read -rsn1 -t 1 key; then
+    case "$key" in
+      q) tput cnorm 2>/dev/null; exit 0 ;;
+      [0-9]) t="${TTYS[$key]:-}"; [ -n "$t" ] && osascript "$FOCUS" "$t" >/dev/null 2>&1 ;;
+    esac
+  fi
+done
